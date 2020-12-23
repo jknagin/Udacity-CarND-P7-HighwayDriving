@@ -96,7 +96,7 @@ int main()
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
 
-          // Create spline using previous path
+          ///// BEGIN TRAJECTORY GENERATION
           int prev_size = previous_path_x.size();
           std::vector<double> ptsx, ptsy;
           double ref_x = car_x;
@@ -152,24 +152,52 @@ int main()
           tk::spline spline;
           spline.set_points(ptsx, ptsy);
 
-          json msgJson;
-
           std::vector<double> next_x_vals;
           std::vector<double> next_y_vals;
           /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          double dist_inc = 0.5;
-          for (int i = 0; i < 50; ++i)
+          
+          // Start with previous path points
+          for(int i=0;i<previous_path_x.size();++i)
           {
-            double next_s = car_s + (i + 1) * dist_inc;
-            double next_d = 6.0;
-            std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            next_x_vals.push_back(xy[0]);
-            next_y_vals.push_back(xy[1]);
+            next_x_vals.push_back(previous_path_x[i]);
+            next_y_vals.push_back(previous_path_y[i]);
           }
+          
+          // Calculate how to break up spline points to travel at reference velocity
+          double horizonX = 30.0;  // meters
+          double horizonY = spline(horizonX);
+          double distanceToHorizon = std::sqrt(horizonX*horizonX + horizonY*horizonY);
+          
+          double x_add_on = 0;
 
+          // Fill up rest of path using spline
+          for (int i=1;i<= 50-previous_path_x.size();++i)
+          {
+            double N = distanceToHorizon/(0.02*ref_vel/2.24); // meters
+            double x_point = x_add_on + horizonX/N;
+            double y_point = spline(x_point);
+           
+            x_add_on = x_point;
+
+            double x_ref = x_point;
+            double y_ref = y_point;
+            
+            // Rotate back to normal
+            x_point = x_ref*std::cos(ref_yaw) - y_ref*std::sin(ref_yaw);
+            y_point = x_ref*std::sin(ref_yaw) + y_ref*std::cos(ref_yaw);
+
+            x_point += ref_x;
+            y_point += ref_y;
+
+            next_x_vals.push_back(x_point);
+            next_y_vals.push_back(y_point);
+          }
+          ///// END TRAJECTORY GENERATION
+  
+          json msgJson;
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
 
