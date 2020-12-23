@@ -72,11 +72,11 @@ int main()
           // j[1] is the data JSON object
 
           // start in lane 1
-          int lane = 1;
+          static int lane = 1;
 
           // reference velocity
-          double ref_vel = 49.5; // mph
-          
+          static double ref_vel = 0.0; // mph
+
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -94,10 +94,104 @@ int main()
 
           // Sensor Fusion Data, a list of all other cars on the same side
           //   of the road.
-          auto sensor_fusion = j[1]["sensor_fusion"];
+          std::vector<std::vector<double>> sensor_fusion = j[1]["sensor_fusion"];
+          // {id, x, y, vx, vy, s, d}
 
           ///// BEGIN TRAJECTORY GENERATION
           int prev_size = previous_path_x.size();
+
+          if (prev_size > 0)
+          {
+            car_s = end_path_s;
+          }
+          bool too_close = false;
+
+          // find ref_v to use
+          for (int i = 0; i < sensor_fusion.size(); ++i)
+          {
+            float d = sensor_fusion[i][6];
+            // if obstacle is in same lane
+            if (4 * lane < d && d < 4 * (lane + 1))
+            {
+              double obs_vx = sensor_fusion[i][3];
+              double obs_vy = sensor_fusion[i][4];
+              double obs_speed = std::sqrt(obs_vx * obs_vx + obs_vy * obs_vy);
+              double obs_s = sensor_fusion[i][5];
+
+              if (obs_s > car_s && obs_s - car_s < 10)
+              {
+                too_close = true;
+                // lane = std::max(0, lane - 1);
+                break;
+              }
+            }
+          }
+
+          // If obstacle is too close to car
+          if (too_close)
+          {
+            // Separate obstacles by lane
+            std::vector<std::vector<std::vector<double> > > obstaclesByLane(NUM_LANES);
+            for (int i=0;i<sensor_fusion.size();++i)
+            {
+              std::vector<double> obstacleInfo = sensor_fusion[i];
+              int obsLane = d2lane(obstacleInfo[6]);
+              obstaclesByLane[obsLane].push_back(obstacleInfo);
+            }
+            // Sort obstacles in each lane in order of increasing s
+            for (int i=0;i<NUM_LANES;++i)
+            {
+              std::sort(obstaclesByLane[i].begin(), obstaclesByLane[i].end(), compareObstaclesByS);
+            }
+            // Check if lane to the left is free
+            bool leftSafe = true;
+            if (lane >= 1)
+            {
+              int potentialLane = lane - 1;
+              leftSafe = checkIfLaneIsSafe(obstaclesByLane[potentialLane], car_s);
+              if (leftSafe)
+              {
+                lane = potentialLane;
+              }
+            }
+            else
+            {
+              leftSafe = false;
+            }
+
+            // Check if lane to the right is safe
+            bool rightSafe = true;
+            if (!leftSafe)
+            {
+              if (lane < NUM_LANES - 1)
+              {
+                int potentialLane = lane + 1;
+                rightSafe = checkIfLaneIsSafe(obstaclesByLane[potentialLane], car_s);
+                if (rightSafe)
+                {
+                  lane = potentialLane;
+                }
+              }
+              else
+              {
+                rightSafe = false;
+              }
+              
+            }
+
+            // If neither lane is safe, slow down in current lane
+            if (!(leftSafe || rightSafe))
+            {
+              ref_vel -= 0.224;
+            }   
+          }
+          // If not too close but moving below speed limit, speed up
+          else if (ref_vel < 49.5)
+          {
+            ref_vel += 0.224;
+          }
+
+          // Generate trajectory using ref_vel
           std::vector<double> ptsx, ptsy;
           double ref_x = car_x;
           double ref_y = car_y;
@@ -158,37 +252,38 @@ int main()
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          
+
           // Start with previous path points
-          for(int i=0;i<previous_path_x.size();++i)
+          for (int i = 0; i < previous_path_x.size(); ++i)
           {
             next_x_vals.push_back(previous_path_x[i]);
             next_y_vals.push_back(previous_path_y[i]);
           }
-          
+
           // Calculate how to break up spline points to travel at reference velocity
-          double horizonX = 30.0;  // meters
+          double horizonX = 30.0; // meters
           double horizonY = spline(horizonX);
-          double distanceToHorizon = std::sqrt(horizonX*horizonX + horizonY*horizonY);
-          
+          double distanceToHorizon = std::sqrt(horizonX * horizonX + horizonY * horizonY);
+
           double x_add_on = 0;
 
           // Fill up rest of path using spline
-          for (int i=1;i<= 50-previous_path_x.size();++i)
+          for (int i = 1; i <= 50 - previous_path_x.size(); ++i)
           {
-            double N = distanceToHorizon/(0.02*ref_vel/2.24); // meters
-            double x_point = x_add_on + horizonX/N;
+            double N = distanceToHorizon / (0.02 * ref_vel / 2.24); // meters
+            double x_point = x_add_on + horizonX / N;
             double y_point = spline(x_point);
-           
+
             x_add_on = x_point;
 
             double x_ref = x_point;
             double y_ref = y_point;
-            
-            // Rotate back to normal
-            x_point = x_ref*std::cos(ref_yaw) - y_ref*std::sin(ref_yaw);
-            y_point = x_ref*std::sin(ref_yaw) + y_ref*std::cos(ref_yaw);
 
+            // Rotate back to normal
+            x_point = x_ref * std::cos(ref_yaw) - y_ref * std::sin(ref_yaw);
+            y_point = x_ref * std::sin(ref_yaw) + y_ref * std::cos(ref_yaw);
+
+            // Shift back to normal
             x_point += ref_x;
             y_point += ref_y;
 
@@ -196,7 +291,7 @@ int main()
             next_y_vals.push_back(y_point);
           }
           ///// END TRAJECTORY GENERATION
-  
+
           json msgJson;
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
