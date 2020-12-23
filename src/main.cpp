@@ -51,12 +51,6 @@ int main()
     map_waypoints_dy.push_back(d_y);
   }
 
-  // start in lane 1
-  //int lane = 1;
-
-  // reference velocity
-  double ref_vel = 49.5; // mph
-
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
                &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
@@ -77,6 +71,12 @@ int main()
         {
           // j[1] is the data JSON object
 
+          // start in lane 1
+          int lane = 1;
+
+          // reference velocity
+          double ref_vel = 49.5; // mph
+          
           // Main car's localization Data
           double car_x = j[1]["x"];
           double car_y = j[1]["y"];
@@ -133,7 +133,7 @@ int main()
           std::vector<double> next_waypoint;
           for (int i = 0; i < 3; ++i)
           {
-            next_waypoint = getXY(car_s + 30 * (i + 1), 2 + 4 * lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            next_waypoint = getXY(car_s + 30 * (i + 1), 2.0 + 4.0 * lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
             ptsx.push_back(next_waypoint[0]);
             ptsy.push_back(next_waypoint[1]);
           }
