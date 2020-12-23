@@ -24,7 +24,7 @@ int main()
   std::vector<double> map_waypoints_dy;
 
   // Waypoint map to read from
-  std::string map_file_ = "../data/highway_map.csv";
+  std::string map_file_ = "data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
@@ -51,9 +51,14 @@ int main()
     map_waypoints_dy.push_back(d_y);
   }
 
+  // start in lane 1
+  int lane = 1;
+
+  // reference velocity
+  double ref_vel = 49.5; // mph
+
   h.onMessage([&map_waypoints_x, &map_waypoints_y, &map_waypoints_s,
-               &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
-                                                     uWS::OpCode opCode) {
+               &map_waypoints_dx, &map_waypoints_dy](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length, uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
     // The 2 signifies a websocket event
@@ -77,7 +82,7 @@ int main()
           double car_y = j[1]["y"];
           double car_s = j[1]["s"];
           double car_d = j[1]["d"];
-          double car_yaw = j[1]["yaw"];
+          double car_yaw = deg2rad(j[1]["yaw"]);
           double car_speed = j[1]["speed"];
 
           // Previous path data given to the Planner
@@ -91,61 +96,118 @@ int main()
           //   of the road.
           auto sensor_fusion = j[1]["sensor_fusion"];
 
-          json msgJson;
+          // Create spline using previous path
+          int prev_size = previous_path_x.size();
+          std::vector<double> ptsx, ptsy;
+          double ref_x = car_x;
+          double ref_y = car_y;
+          double ref_yaw = car_yaw;
 
-          std::vector<double> next_x_vals;
-          std::vector<double> next_y_vals;
-          /**
+          // If previous path has 0 or 1 points, use current position of car and
+          // 1 distance unit behind the car as two points
+          if (prev_size < 2)
+          {
+            double prev_car_x = car_x - std::cos(car_yaw);
+            double prev_car_y = car_y - std::sin(car_yaw);
+            ptsx.push_back(prev_car_x);
+            ptsx.push_back(car_x);
+            ptsy.push_back(prev_car_y);
+            ptsy.push_back(car_y);
+          }
+          else // Previous path has at least 2 points
+          {
+            // Use previous path end point as starting reference
+            ref_x = previous_path_x[previous_path_x.size() - 1];
+            ref_y = previous_path_y[previous_path_y.size() - 1];
+            double ref_x_prev = previous_path_x[previous_path_x.size() - 2];
+            double ref_y_prev = previous_path_y[previous_path_y.size() - 2];
+            ref_yaw = std::atan2(ref_y - ref_y_prev, ref_x - ref_x_prev);
+
+            ptsx.push_back(ref_x_prev);
+            ptsx.push_back(ref_x);
+            ptsy.push_back(ref_y_prev);
+            ptsy.push_back(ref_y);
+          }
+
+          // In Frenet, add 30m spaced points ahead of starting reference
+          std::vector<double> next_waypoint;
+          for (int i=0;i<3;++i)
+          {
+            next_waypoint = getXY(car_s + 30*(i + 1), 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            ptsx.push_back(next_waypoint[0]);
+            ptsy.push_back(next_waypoint[1]);
+          }
+
+          // Shift car reference angle to 0 deg
+          double sx, sy;
+          for (int i=0;i<ptsx.size();++i)
+          {
+            sx = ptsx[i] - ref_x;
+            sy = ptsy[i] - ref_y; 
+            ptsx[i] = sx*std::cos(-ref_yaw) - sy*std::sin(-ref_yaw);
+            ptsy[i] = sx*std::sin(-ref_yaw) + sy*std::cos(-ref_yaw);
+          }
+          
+          // Create a spline using ptsx, ptsy
+          tk::spline spline;
+          spline.set_points(ptsx, ptsy);
+        
+
+        json msgJson;
+
+        std::vector<double> next_x_vals;
+        std::vector<double> next_y_vals;
+        /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-          double dist_inc = 0.5;
-          for (int i = 0; i < 50; ++i)
-          {
-            double next_s = car_s + (i+1)*dist_inc;
-            double next_d = 6.0;
-            std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-            next_x_vals.push_back(xy[0]);
-            next_y_vals.push_back(xy[1]);
-          }
+        double dist_inc = 0.5;
+        for (int i = 0; i < 50; ++i)
+        {
+          double next_s = car_s + (i + 1) * dist_inc;
+          double next_d = 6.0;
+          std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+          next_x_vals.push_back(xy[0]);
+          next_y_vals.push_back(xy[1]);
+        }
 
-          msgJson["next_x"] = next_x_vals;
-          msgJson["next_y"] = next_y_vals;
+        msgJson["next_x"] = next_x_vals;
+        msgJson["next_y"] = next_y_vals;
 
-          auto msg = "42[\"control\"," + msgJson.dump() + "]";
+        auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
-          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-        } // end "telemetry" if
-      }
-      else
-      {
-        // Manual driving
-        std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      }
+      } // end "telemetry" if
+    }
+    else
+    {
+      // Manual driving
+      std::string msg = "42[\"manual\",{}]";
+      ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+    }
     } // end websocket if
-  }); // end h.onMessage
+}); // end h.onMessage
 
-  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-    std::cout << "Connected!!!" << std::endl;
-  });
+h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+  std::cout << "Connected!!!" << std::endl;
+});
 
-  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-                         char *message, size_t length) {
-    ws.close();
-    std::cout << "Disconnected" << std::endl;
-  });
+h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
+                       char *message, size_t length) {
+  ws.close();
+  std::cout << "Disconnected" << std::endl;
+});
 
-  int port = 4567;
-  if (h.listen(port))
-  {
-    std::cout << "Listening to port " << port << std::endl;
-  }
-  else
-  {
-    std::cerr << "Failed to listen to port" << std::endl;
-    return -1;
-  }
+int port = 4567;
+if (h.listen(port))
+{
+  std::cout << "Listening to port " << port << std::endl;
+}
+else
+{
+  std::cerr << "Failed to listen to port" << std::endl;
+  return -1;
+}
 
-  h.run();
+h.run();
 }
