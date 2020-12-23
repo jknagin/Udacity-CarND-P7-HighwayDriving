@@ -52,7 +52,7 @@ int main()
   }
 
   // start in lane 1
-  int lane = 1;
+  //int lane = 1;
 
   // reference velocity
   double ref_vel = 49.5; // mph
@@ -131,83 +131,82 @@ int main()
 
           // In Frenet, add 30m spaced points ahead of starting reference
           std::vector<double> next_waypoint;
-          for (int i=0;i<3;++i)
+          for (int i = 0; i < 3; ++i)
           {
-            next_waypoint = getXY(car_s + 30*(i + 1), 2+4*lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            next_waypoint = getXY(car_s + 30 * (i + 1), 2 + 4 * lane, map_waypoints_s, map_waypoints_x, map_waypoints_y);
             ptsx.push_back(next_waypoint[0]);
             ptsy.push_back(next_waypoint[1]);
           }
 
           // Shift car reference angle to 0 deg
           double sx, sy;
-          for (int i=0;i<ptsx.size();++i)
+          for (int i = 0; i < ptsx.size(); ++i)
           {
             sx = ptsx[i] - ref_x;
-            sy = ptsy[i] - ref_y; 
-            ptsx[i] = sx*std::cos(-ref_yaw) - sy*std::sin(-ref_yaw);
-            ptsy[i] = sx*std::sin(-ref_yaw) + sy*std::cos(-ref_yaw);
+            sy = ptsy[i] - ref_y;
+            ptsx[i] = sx * std::cos(-ref_yaw) - sy * std::sin(-ref_yaw);
+            ptsy[i] = sx * std::sin(-ref_yaw) + sy * std::cos(-ref_yaw);
           }
-          
+
           // Create a spline using ptsx, ptsy
           tk::spline spline;
           spline.set_points(ptsx, ptsy);
-        
 
-        json msgJson;
+          json msgJson;
 
-        std::vector<double> next_x_vals;
-        std::vector<double> next_y_vals;
-        /**
+          std::vector<double> next_x_vals;
+          std::vector<double> next_y_vals;
+          /**
            * TODO: define a path made up of (x,y) points that the car will visit
            *   sequentially every .02 seconds
            */
-        double dist_inc = 0.5;
-        for (int i = 0; i < 50; ++i)
-        {
-          double next_s = car_s + (i + 1) * dist_inc;
-          double next_d = 6.0;
-          std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
-          next_x_vals.push_back(xy[0]);
-          next_y_vals.push_back(xy[1]);
-        }
+          double dist_inc = 0.5;
+          for (int i = 0; i < 50; ++i)
+          {
+            double next_s = car_s + (i + 1) * dist_inc;
+            double next_d = 6.0;
+            std::vector<double> xy = getXY(next_s, next_d, map_waypoints_s, map_waypoints_x, map_waypoints_y);
+            next_x_vals.push_back(xy[0]);
+            next_y_vals.push_back(xy[1]);
+          }
 
-        msgJson["next_x"] = next_x_vals;
-        msgJson["next_y"] = next_y_vals;
+          msgJson["next_x"] = next_x_vals;
+          msgJson["next_y"] = next_y_vals;
 
-        auto msg = "42[\"control\"," + msgJson.dump() + "]";
+          auto msg = "42[\"control\"," + msgJson.dump() + "]";
 
+          ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
+        } // end "telemetry" if
+      }
+      else
+      {
+        // Manual driving
+        std::string msg = "42[\"manual\",{}]";
         ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-      } // end "telemetry" if
-    }
-    else
-    {
-      // Manual driving
-      std::string msg = "42[\"manual\",{}]";
-      ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
-    }
+      }
     } // end websocket if
-}); // end h.onMessage
+  }); // end h.onMessage
 
-h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
-  std::cout << "Connected!!!" << std::endl;
-});
+  h.onConnection([&h](uWS::WebSocket<uWS::SERVER> ws, uWS::HttpRequest req) {
+    std::cout << "Connected!!!" << std::endl;
+  });
 
-h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
-                       char *message, size_t length) {
-  ws.close();
-  std::cout << "Disconnected" << std::endl;
-});
+  h.onDisconnection([&h](uWS::WebSocket<uWS::SERVER> ws, int code,
+                         char *message, size_t length) {
+    ws.close();
+    std::cout << "Disconnected" << std::endl;
+  });
 
-int port = 4567;
-if (h.listen(port))
-{
-  std::cout << "Listening to port " << port << std::endl;
-}
-else
-{
-  std::cerr << "Failed to listen to port" << std::endl;
-  return -1;
-}
+  int port = 4567;
+  if (h.listen(port))
+  {
+    std::cout << "Listening to port " << port << std::endl;
+  }
+  else
+  {
+    std::cerr << "Failed to listen to port" << std::endl;
+    return -1;
+  }
 
-h.run();
+  h.run();
 }
