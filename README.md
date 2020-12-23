@@ -1,7 +1,7 @@
 # CarND-Path-Planning-Project
 Self-Driving Car Engineer Nanodegree Program
    
-### Simulator.
+### Simulator
 You can download the Term3 Simulator which contains the Path Planning Project from the [releases tab (https://github.com/udacity/self-driving-car-sim/releases/tag/T3_v1.2).  
 
 To run the simulator on Mac/Linux, first make the binary file executable with the following command:
@@ -15,7 +15,7 @@ In this project your goal is to safely navigate around a virtual highway with ot
 #### The map of the highway is in data/highway_map.txt
 Each waypoint in the list contains  [x,y,s,dx,dy] values. x and y are the waypoint's map coordinate position, the s value is the distance along the road to get to that waypoint in meters, the dx and dy values define the unit normal vector pointing outward of the highway loop.
 
-The highway's waypoints loop around so the frenet s value, distance along the road, goes from 0 to 6945.554.
+The highway's waypoints loop around so the Frenet s value, distance along the road, goes from 0 to 6945.554.
 
 ## Basic Build Instructions
 
@@ -32,9 +32,9 @@ Here is the data provided from the Simulator to the C++ Program
 
 ["y"] The car's y position in map coordinates
 
-["s"] The car's s position in frenet coordinates
+["s"] The car's s position in Frenet coordinates
 
-["d"] The car's d position in frenet coordinates
+["d"] The car's d position in Frenet coordinates
 
 ["yaw"] The car's yaw angle in the map
 
@@ -51,13 +51,13 @@ the path has processed since last time.
 
 #### Previous path's end s and d values 
 
-["end_path_s"] The previous list's last point's frenet s value
+["end_path_s"] The previous list's last point's Frenet s value
 
-["end_path_d"] The previous list's last point's frenet d value
+["end_path_d"] The previous list's last point's Frenet d value
 
 #### Sensor Fusion Data, a list of all other car's attributes on the same side of the road. (No Noise)
 
-["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates. 
+["sensor_fusion"] A 2d vector of cars and then that car's [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in Frenet coordinates, car's d position in Frenet coordinates. 
 
 ## Details
 
@@ -91,55 +91,3 @@ A really helpful resource for doing this project and creating smooth trajectorie
     cd uWebSockets
     git checkout e94b6e1
     ```
-
-## Editor Settings
-
-We've purposefully kept editor configuration files out of this repo in order to
-keep it as simple and environment agnostic as possible. However, we recommend
-using the following settings:
-
-* indent using spaces
-* set tab width to 2 spaces (keeps the matrices in source code aligned)
-
-## Code Style
-
-Please (do your best to) stick to [Google's C++ style guide](https://google.github.io/styleguide/cppguide.html).
-
-## Project Instructions and Rubric
-
-Note: regardless of the changes you make, your project must be buildable using
-cmake and make!
-
-
-## Call for IDE Profiles Pull Requests
-
-Help your fellow students!
-
-We decided to create Makefiles with cmake to keep this project as platform
-agnostic as possible. Similarly, we omitted IDE profiles in order to ensure
-that students don't feel pressured to use one IDE or another.
-
-However! I'd love to help people get up and running with their IDEs of choice.
-If you've created a profile for an IDE that you think other students would
-appreciate, we'd love to have you add the requisite profile files and
-instructions to ide_profiles/. For example if you wanted to add a VS Code
-profile, you'd add:
-
-* /ide_profiles/vscode/.vscode
-* /ide_profiles/vscode/README.md
-
-The README should explain what the profile does, how to take advantage of it,
-and how to install it.
-
-Frankly, I've never been involved in a project with multiple IDE profiles
-before. I believe the best way to handle this would be to keep them out of the
-repo root to avoid clutter. My expectation is that most profiles will include
-instructions to copy files to a new location to get picked up by the IDE, but
-that's just a guess.
-
-One last note here: regardless of the IDE used, every submitted project must
-still be compilable with cmake and make./
-
-## How to write a README
-A well written README file can enhance your project and portfolio.  Develop your abilities to create professional README files by completing [this free course](https://www.udacity.com/course/writing-readmes--ud777).
-
