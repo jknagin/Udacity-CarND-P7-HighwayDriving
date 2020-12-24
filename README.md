@@ -30,12 +30,9 @@ The highway is approximately 4.32 miles long. The vehicle is expected to make on
   * [json.hpp](src/json.hpp): Helper functions for handling JSON objects, used for communication between highway simulator and path planner
   * [main.cpp](src/main.cpp): Main function which communicates with highway simulator and executes path planning algorithm
   * [spline.h](src/spline.h): Spline interpolation library, taken from [here](http://kluge.in-chemnitz.de/opensource/spline/)
-* [build.sh](build.sh): Bash script used to perform a clean build of the path planner
-* [clean.sh](clean.sh): Bash script used to clean the build of the path planner
-* [CMakeLists.txt](CMakeLists.txt): CMakeLists.txt file used by `build.sh` to build the path planner.
+* [CMakeLists.txt](CMakeLists.txt): CMakeLists.txt file used to build the path planner.
 * [install-mac.sh](install-mac.sh): Bash script used to install necessary libraries for MacOS
 * [install-ubuntu.sh](install-ubuntu.sh): Bash script used to install necessary libraries for Ubuntu
-* [run.sh](run.sh): Bash script used to run the path planner
 
 ---   
 ## Dependencies
@@ -62,12 +59,10 @@ The highway is approximately 4.32 miles long. The vehicle is expected to make on
 ---   
 ## Basic Build Instructions
 
-1. Clone this repo:
-   ```shell
-    git clone https://github.com/jknagin/Udacity-CarND-P7-HighwayDriving.git
-    ```
-2. Compile: `./build.sh`
-3. Run: `./run.sh`.
+1. Clone this repo.
+2. Make a build directory: `mkdir build && cd build`
+3. Compile: `cmake .. && make`
+4. Run it: `./path_planning`..
 
 ---   
 ## Simulator Details

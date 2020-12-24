@@ -24,7 +24,7 @@ int main()
   std::vector<double> map_waypoints_dy;
 
   // Waypoint map to read from
-  std::string map_file_ = "data/highway_map.csv";
+  std::string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
   double max_s = 6945.554;
 
@@ -126,7 +126,7 @@ int main()
               }
             }
           }
-
+          
           // If obstacle is too close to car
           if (too_close)
           {
@@ -143,7 +143,7 @@ int main()
             {
               std::sort(obstaclesByLane[i].begin(), obstaclesByLane[i].end(), compareObstaclesByS);
             }
-            // Check if lane to the left is free
+            // Check if lane to the left is safe
             bool leftSafe = true;
             if (lane >= 1)
             {
@@ -196,7 +196,7 @@ int main()
           double ref_x = car_x;
           double ref_y = car_y;
           double ref_yaw = car_yaw;
-
+          
           // If previous path has 0 or 1 points, use current position of car and
           // 1 distance unit behind the car as two points
           if (prev_size < 2)
@@ -241,7 +241,7 @@ int main()
             ptsx[i] = sx * std::cos(-ref_yaw) - sy * std::sin(-ref_yaw);
             ptsy[i] = sx * std::sin(-ref_yaw) + sy * std::cos(-ref_yaw);
           }
-
+          
           // Create a spline using ptsx, ptsy
           tk::spline spline;
           spline.set_points(ptsx, ptsy);
