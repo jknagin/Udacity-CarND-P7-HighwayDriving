@@ -121,4 +121,7 @@ To prepare for a lane change, the path planner determines if there is a vehicle 
 
 The path planner checks if the left lane is "safe" before checking if the right lane is safe. If the left lane is safe, then the planner controls the vehicle to change to the left lane. If the left lane is not safe, then the planner controls the vehicel to change to the right lane. If neither lane is safe, then the planner commands the vehicle to slow down in the current lane by lowering the reference speed. The reference speed will be increased again (ideally back to just below the speed limit) when the controlled vehicle has sufficient space in front of it.
 
+---
 
+## Results
+Using the path planning methodology described above, I was able to navigate the vehicle around the entire highway in roughly 5 minutes without violating any velocity, acceleration, or jerk constraints, and without colliding with any other vehicles.
